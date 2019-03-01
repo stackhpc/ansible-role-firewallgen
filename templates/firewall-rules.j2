@@ -1,0 +1,68 @@
+#jinja2: trim_blocks: "false", lstrip_blocks: "false"
+
+*security
+:INPUT ACCEPT
+:FORWARD ACCEPT
+:OUTPUT ACCEPT
+COMMIT
+
+*raw
+:PREROUTING ACCEPT
+:OUTPUT ACCEPT
+COMMIT
+
+*mangle
+:PREROUTING ACCEPT
+:INPUT ACCEPT
+:FORWARD ACCEPT
+:OUTPUT ACCEPT
+:POSTROUTING ACCEPT
+COMMIT
+
+*nat
+:PREROUTING ACCEPT
+:INPUT ACCEPT
+:OUTPUT ACCEPT
+:POSTROUTING ACCEPT
+COMMIT
+
+*filter
+:INPUT DROP
+:FORWARD DROP
+:OUTPUT ACCEPT
+:firewallgen_input -
+:firewallgen_tcp -
+:firewallgen_udp  -
+-A INPUT -j firewallgen_input
+-A firewallgen_input -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A firewallgen_input -i lo -j ACCEPT
+-A firewallgen_input -m conntrack --ctstate INVALID -j DROP
+{% if firewallgen_iptables_version == 4 %}
+-A firewallgen_input -p icmp -m icmp --icmp-type 8 -m conntrack --ctstate NEW -j ACCEPT
+{% else %}
+-A firewallgen_input -p ipv6-icmp --icmpv6-type 128 -m conntrack --ctstate NEW -j ACCEPT
+{% endif %}
+-A firewallgen_input -p udp -m conntrack --ctstate NEW -j firewallgen_udp
+-A firewallgen_input -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m conntrack --ctstate NEW -j firewallgen_tcp
+{% if firewallgen_iptables_version == 4 %}
+-A firewallgen_input -p udp -j REJECT --reject-with icmp-port-unreachable
+{% else %}
+-A firewallgen_input -p udp -j REJECT --reject-with icmp6-adm-prohibited
+{% endif %}
+-A firewallgen_input -p tcp -j REJECT --reject-with tcp-reset
+{% if firewallgen_iptables_version == 4 %}
+-A firewallgen_input -j REJECT --reject-with icmp-proto-unreachable
+{% else %}
+-A firewallgen_input -j REJECT --reject-with icmp6-adm-prohibited
+{% endif %}
+{% set firewallgen_rules =  firewallgen_ipv4_input_allow_rules if firewallgen_iptables_version == 4 else firewallgen_ipv6_input_allow_rules %}
+{%+ for rule in firewallgen_rules %}
+{% if rule.proto == "tcp" %}
+-A firewallgen_tcp -p tcp -m tcp --dport {{ rule.port }} -j ACCEPT{% if rule.interface | default(False) and rule.interface != "all" %} -i {{ rule.interface }}{% endif %}{% if rule.destination | default(False) %} -d {{ rule.destination }}{% endif %}{% if rule.comment | default(False) %} -m comment --comment "{{ rule.comment }}"{% endif %}
+{% endif %}
+{% if rule.proto == "udp" %}
+-A firewallgen_udp -p udp -m udp --dport {{ rule.port }} -j ACCEPT{% if rule.interface | default(False) and rule.interface != "all" %} -i {{ rule.interface }}{% endif %}{% if rule.destination | default(False) %} -d {{ rule.destination }}{% endif %}{% if rule.comment | default(False) %} -m comment --comment "{{ rule.comment }}"{% endif %}
+{% endif %}
+
+{% endfor %}
+COMMIT
