@@ -21,6 +21,8 @@ firewallgen_ipv4_input_allow_rewrite_rules: []
 
 firewallgen_library_pip_uri: git+https://github.com/stackhpc/firewallgen 
 
+firewallgen_enable_logging: True
+
 # list of network names to perform `net_name | net_vip_address`
 # and `net_name | net_vip_address` lookups against. If the
 # network_name doesn't refer to a variable it will be interpretted

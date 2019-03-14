@@ -33,6 +33,7 @@ COMMIT
 :firewallgen_input -
 :firewallgen_tcp -
 :firewallgen_udp  -
+:firewallgen_logging - 
 -A INPUT -j firewallgen_input
 -A firewallgen_input -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A firewallgen_input -i lo -j ACCEPT
@@ -44,6 +45,10 @@ COMMIT
 {% endif %}
 -A firewallgen_input -p udp -m conntrack --ctstate NEW -j firewallgen_udp
 -A firewallgen_input -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m conntrack --ctstate NEW -j firewallgen_tcp
+-A firewallgen_input -j firewallgen_logging
+{% if firewallgen_enable_logging %}
+-A firewallgen_logging -m limit --limit 2/min -j LOG --log-prefix "IPTables-Dropped: " --log-level 4
+{% endif %}
 {% if firewallgen_iptables_version == 4 %}
 -A firewallgen_input -p udp -j REJECT --reject-with icmp-port-unreachable
 {% else %}
