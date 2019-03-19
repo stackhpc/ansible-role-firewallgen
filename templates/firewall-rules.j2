@@ -33,7 +33,8 @@ COMMIT
 :firewallgen_input -
 :firewallgen_tcp -
 :firewallgen_udp  -
-:firewallgen_logging - 
+:firewallgen_logging -
+:firewallgen_other - 
 -A INPUT -j firewallgen_input
 -A firewallgen_input -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A firewallgen_input -i lo -j ACCEPT
@@ -45,6 +46,7 @@ COMMIT
 {% endif %}
 -A firewallgen_input -p udp -m conntrack --ctstate NEW -j firewallgen_udp
 -A firewallgen_input -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m conntrack --ctstate NEW -j firewallgen_tcp
+-A firewallgen_input -j firewallgen_other
 -A firewallgen_input -j firewallgen_logging
 {% if firewallgen_enable_logging %}
 -A firewallgen_logging -m limit --limit 2/min -j LOG --log-prefix "IPTables-Dropped: " --log-level 4
@@ -64,9 +66,10 @@ COMMIT
 {%+ for rule in firewallgen_rules %}
 {% if rule.proto == "tcp" %}
 -A firewallgen_tcp -p tcp -m tcp --dport {{ rule.port }} -j ACCEPT{% if rule.interface | default(False) and rule.interface != "all" %} -i {{ rule.interface }}{% endif %}{% if rule.destination | default(False) %} -d {{ rule.destination }}{% endif %}{% if rule.comment | default(False) %} -m comment --comment "{{ rule.comment }}"{% endif %}
-{% endif %}
-{% if rule.proto == "udp" %}
+{% elif rule.proto == "udp" %}
 -A firewallgen_udp -p udp -m udp --dport {{ rule.port }} -j ACCEPT{% if rule.interface | default(False) and rule.interface != "all" %} -i {{ rule.interface }}{% endif %}{% if rule.destination | default(False) %} -d {{ rule.destination }}{% endif %}{% if rule.comment | default(False) %} -m comment --comment "{{ rule.comment }}"{% endif %}
+{% else %}
+-A firewallgen_other -p {{ rule.proto }} -j ACCEPT{% if rule.interface | default(False) and rule.interface != "all" %} -i {{ rule.interface }}{% endif %}{% if rule.destination | default(False) %} -d {{ rule.destination }}{% endif %}{% if rule.comment | default(False) %} -m comment --comment "{{ rule.comment }}"{% endif %}
 {% endif %}
 
 {% endfor %}
