@@ -5,7 +5,8 @@ from firewallgen import iputils
 from firewallgen import dockerutils
 from firewallgen import utils
 from firewallgen import firewallgen
-from firewallgen.firewallgen import (UDPDataCollector, TCPDataCollector, collect_open_sockets)
+from firewallgen.firewallgen import (TCPDataCollectorIPV4Mapped, UDPDataCollectorIPV4Mapped,
+                                     UDPDataCollector, TCPDataCollector, collect_open_sockets)
 from operator import itemgetter
 
 ANSIBLE_METADATA = {
@@ -14,29 +15,6 @@ ANSIBLE_METADATA = {
     'supported_by': 'community'
 }
 
-class AnsibleVersionMixin:
-    def get_version_flag(self):
-        return ssutils.get_version_flag(self.module.params['ip_version'])
-
-
-class AnsibleUDPCollector(UDPDataCollector, AnsibleVersionMixin):
-    def __init__(self, module):
-        super(AnsibleUDPCollector, self).__init__()
-        self.module = module
-
-    def get_ss_output(self):
-        _, out, _ = self.module.run_command(["ss", "-nlpu", self.get_version_flag()])
-        return out
-
-class AnsibleTCPCollector(TCPDataCollector, AnsibleVersionMixin):
-    def __init__(self, module):
-        super(AnsibleTCPCollector, self).__init__()
-        self.module = module
-
-    def get_ss_output(self):
-        _, out, _ = self.module.run_command(["ss", "-nlpt", self.get_version_flag()])
-        return out
-
 def process_to_dict(process):
     return vars(process)
 
@@ -44,13 +22,6 @@ def opensocket_to_dict(opensocket):
     result = vars(opensocket)
     result['processes'] = map(process_to_dict, result['processes'])
     return result
-
-class AnsibleCmdRunner(utils.CmdRunner):
-    def __init__(self, module):
-        self.module = module
-
-    def check_output(self, *args, **kwargs):
-        return self.module.run_command(*args, **kwargs)[1]
 
 def run_module():
     module_args = dict(
@@ -68,11 +39,19 @@ def run_module():
         supports_check_mode=False
     )
 
-    tcp = collect_open_sockets(AnsibleTCPCollector(module),
-                               module.params['ip_to_interface_map'])
+    map_ = module.params['ip_to_interface_map']
+    ip_to_interface = firewallgen.InterfaceMap(map_)
 
-    udp = collect_open_sockets(AnsibleUDPCollector(module),
-                               module.params['ip_to_interface_map'])
+    if module.params['ip_version'] == 4:
+        tcp = collect_open_sockets(TCPDataCollector(ip_to_interface))
+        udp = collect_open_sockets(UDPDataCollector(ip_to_interface))
+        if utils.is_ipv4_mapped_ipv6_enabled():
+            tcp_mapped = collect_open_sockets(TCPDataCollectorIPV4Mapped(ip_to_interface))
+            udp_mapped = collect_open_sockets(UDPDataCollectorIPV4Mapped(ip_to_interface))
+            tcp.extend(tcp_mapped)
+            udp.extend(udp_mapped)
+    else:
+        raise NotImplementedError("ipv6 support not currently implemented")
 
     allsockets= map(opensocket_to_dict, (tcp+udp))
 

@@ -1,10 +1,11 @@
 ---
 
-- name: install virtualenv
+- name: install system packages
   package:
     name:
       - python-virtualenv
       - git
+      - gcc #unfortuantly needed for psutil, use wheel?
     state: present
   become: True
 

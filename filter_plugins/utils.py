@@ -4,10 +4,21 @@ __metaclass__ = type
 from ansible.errors import AnsibleError, AnsibleFilterError
 from operator import itemgetter
 
+def itemgetter_(*items):
+    # same as itemgetter but will ignore missing values
+    if len(items) == 1:
+        item = items[0]
+        def g(obj):
+            return obj[item]
+    else:
+        def g(obj):
+            return tuple(obj[item] for item in items if item in obj)
+    return g
+
 def sort_multi(data, *args):
     ''' sort list using multiple attributes
     '''
-    return sorted(data, key = itemgetter(*args))
+    return sorted(data, key = itemgetter_(*args))
 
 def keyvalue_dict(data):
     result = {}
