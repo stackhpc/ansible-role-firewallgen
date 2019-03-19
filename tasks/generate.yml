@@ -18,6 +18,7 @@
     name:
       - "{{ firewallgen_library_pip_uri }}"
       - jinja2
+      - docker
     virtualenv: /tmp/venv/firewallgen
   state: forcereinstall
 
