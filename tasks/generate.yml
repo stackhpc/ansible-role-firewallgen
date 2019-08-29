@@ -21,7 +21,7 @@
       - jinja2
       - docker
     virtualenv: /tmp/venv/firewallgen
-  state: forcereinstall
+    state: forcereinstall
 
 - name: Set fact containing default interface map
   set_fact:
