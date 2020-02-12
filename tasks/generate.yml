@@ -82,10 +82,12 @@
   debug:
     msg: "{{ ip_reverse_map }}"
 
-- name: run firewallgen
-  vars:
+- name: use virtualenv
+  set_fact:
     ansible_python_interpreter: /tmp/venv/firewallgen/bin/python
-  firewallgen:
+
+- name: run firewallgen
+  firewallgen_ansible:
     ip_to_interface_map: "{{ default_network_map }}"
     ip_version: 4
   register: firewallgen

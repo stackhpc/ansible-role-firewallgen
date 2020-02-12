@@ -4,9 +4,9 @@ from firewallgen import haproxy
 from firewallgen import iputils
 from firewallgen import dockerutils
 from firewallgen import utils
-from firewallgen import firewallgen
-from firewallgen.firewallgen import (TCPDataCollectorIPV4Mapped, UDPDataCollectorIPV4Mapped,
-                                     UDPDataCollector, TCPDataCollector, collect_open_sockets)
+import firewallgen
+from firewallgen import (TCPDataCollectorIPV4Mapped, UDPDataCollectorIPV4Mapped,
+                         UDPDataCollector, TCPDataCollector, collect_open_sockets)
 from operator import itemgetter
 
 ANSIBLE_METADATA = {
@@ -45,7 +45,7 @@ def run_module():
     if module.params['ip_version'] == 4:
         tcp = collect_open_sockets(TCPDataCollector(ip_to_interface))
         udp = collect_open_sockets(UDPDataCollector(ip_to_interface))
-        if utils.is_ipv4_mapped_ipv6_enabled():
+        if iputils.is_ipv4_mapped_ipv6_enabled():
             tcp_mapped = collect_open_sockets(TCPDataCollectorIPV4Mapped(ip_to_interface))
             udp_mapped = collect_open_sockets(UDPDataCollectorIPV4Mapped(ip_to_interface))
             tcp.extend(tcp_mapped)
