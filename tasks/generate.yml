@@ -69,7 +69,7 @@
 
 - name: Combine virtual and default maps
   set_fact:
-    network_allocations: "{{ vip_addresses | combine(ip_map) }}"
+    network_allocations: "{{ vip_addresses | default({}) | combine(ip_map) }}"
 
 - debug:
     msg: "{{ network_allocations }}"
