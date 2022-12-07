@@ -74,7 +74,7 @@ COMMIT
 {% endif %}
 -A FORWARD -j firewallgen_fwreject
 -A FORWARD -j firewallgen_reject
--A INPUT -j firewallgen_input
+-I INPUT 1 -j firewallgen_input
 -A firewallgen_input -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A firewallgen_input -i lo -j ACCEPT
 -A firewallgen_input -m conntrack --ctstate INVALID -j DROP
